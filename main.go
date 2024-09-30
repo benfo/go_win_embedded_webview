@@ -31,7 +31,13 @@ func createWindow() syscall.Handle {
 	return syscall.Handle(hwnd)
 }
 
+type IncrementResult struct {
+	Count uint `json:"count"`
+}
+
 func main() {
+	var count uint = 0
+
 	hwnd := createWindow()
 
 	debug := true
@@ -41,7 +47,42 @@ func main() {
 	w.SetTitle("Embedded WebView")
 	w.SetSize(800, 600, webview.HintNone)
 
-	w.SetHtml("<div><div>Input below</div><div><input id='input' /></div></div>")
-	w.Eval(`document.getElementById('input').focus();`)
+	w.Bind("increment", func() IncrementResult {
+		count++
+		return IncrementResult{Count: count}
+	})
+
+	w.SetHtml(html)
 	w.Run()
 }
+
+const html = `
+<div>
+	<button id="increment">Tap me</button>
+	<div>You tapped <span id="count">0</span> time(s).</div>
+	<input id="input" />
+	<div>
+		<label for="cars">Choose a car:</label>
+
+		<select name="cars" id="cars">
+  		<option value="volvo">Volvo</option>
+  		<option value="saab">Saab</option>
+  		<option value="mercedes">Mercedes</option>
+  		<option value="audi">Audi</option>
+		</select>
+	</div>
+</div>
+<script>
+	const [incrementElement, countElement, inputElement] =
+    document.querySelectorAll("#increment, #count, #input");
+  document.addEventListener("DOMContentLoaded", () => {
+		inputElement.focus();
+
+    incrementElement.addEventListener("click", () => {
+      window.increment().then(result => {
+        countElement.textContent = result.count;
+      });
+    });
+  });
+</script>
+`
